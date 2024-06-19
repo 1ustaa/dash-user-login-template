@@ -28,13 +28,25 @@ app.layout = dmc.MantineProvider(forceColorScheme="dark",
                                                          dmc.AppShellNavbar(
                                                              dmc.GridCol(
                                                                  style={"textAlign": "center"},
-                                                                 children=[dmc.ActionIcon(
-                                                                     children=DashIconify(icon="clarity:settings-line",
-                                                                                          width=20,
-                                                                                          ),
-                                                                     id="registration_page",
-                                                                     n_clicks=0
-                                                                 )]
+                                                                 children=[dmc.Space(h=20),
+                                                                           dmc.ActionIcon(
+                                                                               children=DashIconify(
+                                                                                   icon="carbon:home",
+                                                                                   width=20,
+                                                                                   ),
+                                                                               id="home_page",
+                                                                               n_clicks=0
+                                                                           ),
+                                                                           dmc.Space(h=20),
+                                                                           dmc.ActionIcon(
+                                                                               children=DashIconify(
+                                                                                   icon="clarity:settings-line",
+                                                                                   width=20,
+                                                                               ),
+                                                                               id="registration_page",
+                                                                               n_clicks=0
+                                                                           )
+                                                                           ]
                                                              )
                                                          ),
                                                      ]
@@ -47,10 +59,14 @@ app.layout = dmc.MantineProvider(forceColorScheme="dark",
 
 @callback(
     Output("redirect", "href"),
+    Input("home_page", "n_clicks"),
     Input("registration_page", "n_clicks")
+
 )
-def redirect_registration(n_cliks):
-    if n_cliks > 0:
+def redirect_registration(home, registration):
+    if home:
+        return "/"
+    elif registration:
         return "/registration"
 
 
