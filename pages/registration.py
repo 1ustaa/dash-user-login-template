@@ -32,7 +32,6 @@ def layout():
             children=[
                 dmc.Space(h="20"),
                 dmc.TextInput(
-                    style={"borderColor": "green"},
                     label="Логин",
                     id="login_field",
                     w="300",
