@@ -1,9 +1,10 @@
 import dash
+import os
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
-from dash import Dash, _dash_renderer, dcc, callback, Input, Output, State, clientside_callback
+from dash import Dash, dcc, callback, Input, Output
 
-_dash_renderer._set_react_version("18.2.0")
+os.environ['REACT_VERSION'] = '18.2.0'
 
 stylesheets = [
     "https://unpkg.com/@mantine/dates@7/styles.css",
@@ -30,15 +31,17 @@ app.layout = dmc.MantineProvider(forceColorScheme="dark",
                                                                  style={"textAlign": "center"},
                                                                  children=[dmc.Space(h=20),
                                                                            dmc.ActionIcon(
+                                                                               color="green",
                                                                                children=DashIconify(
                                                                                    icon="carbon:home",
                                                                                    width=20,
-                                                                                   ),
+                                                                               ),
                                                                                id="home_page",
                                                                                n_clicks=0
                                                                            ),
                                                                            dmc.Space(h=20),
                                                                            dmc.ActionIcon(
+                                                                               color="green",
                                                                                children=DashIconify(
                                                                                    icon="clarity:settings-line",
                                                                                    width=20,
@@ -71,4 +74,4 @@ def redirect_registration(home, registration):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run_server(debug=True)
