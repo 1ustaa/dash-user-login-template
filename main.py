@@ -3,10 +3,10 @@ import os
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 from dash import Dash, dcc, callback, Input, Output, html
-from database.model import User
+from database.model import User, session
 from flask import Flask
 
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user, logout_user
 
 os.environ['REACT_VERSION'] = '18.2.0'
 
@@ -21,7 +21,8 @@ stylesheets = [
 server = Flask(__name__)
 app = Dash(external_stylesheets=stylesheets,
            use_pages=True,
-           server=server)
+           server=server,
+           suppress_callback_exceptions=True)
 
 server.config.update(
     SECRET_KEY="verysecretkey=)"
@@ -34,7 +35,7 @@ login_manager.login_view = "/login"
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.get(user_id)
+    return session.get(User, int(user_id))
 
 
 app.layout = dmc.MantineProvider(forceColorScheme="dark",
@@ -50,36 +51,36 @@ app.layout = dmc.MantineProvider(forceColorScheme="dark",
                                                              dmc.GridCol(
                                                                  style={"textAlign": "center"},
                                                                  children=[dmc.Space(h=20),
-                                                                           dmc.ActionIcon(
-                                                                               color="green",
-                                                                               children=DashIconify(
-                                                                                   icon="carbon:home",
-                                                                                   width=20,
-                                                                               ),
-                                                                               id="home_page",
-                                                                               n_clicks=0
-                                                                           ),
+                                                                           dcc.Link(
+                                                                               href="/",
+                                                                               children=dmc.ActionIcon(
+                                                                                   color="green",
+                                                                                   children=DashIconify(
+                                                                                       icon="carbon:home",
+                                                                                       width=20,
+                                                                                   ),
+                                                                                   id="home_page",
+                                                                                   n_clicks=0
+                                                                               )),
+                                                                           html.Div(id="user_table_button"),
                                                                            dmc.Space(h=20),
-                                                                           dmc.ActionIcon(
-                                                                               color="green",
-                                                                               children=DashIconify(
-                                                                                   icon="material-symbols:app-registration-outline-rounded",
-                                                                                   width=20,
-                                                                               ),
-                                                                               id="registration_page",
-                                                                               n_clicks=0
-                                                                           ),
+                                                                           dcc.Link(
+                                                                               href="/registration",
+                                                                               children=dmc.ActionIcon(
+                                                                                   color="green",
+                                                                                   children=DashIconify(
+                                                                                       icon="material-symbols:app-registration-outline-rounded",
+                                                                                       width=20,
+                                                                                   ),
+                                                                                   id="registration_page",
+                                                                                   n_clicks=0
+                                                                               )),
                                                                            dmc.Space(h=20),
+                                                                           html.Div(
+                                                                               id="login_logout_button",
 
-                                                                           dmc.ActionIcon(
-                                                                               color="green",
-                                                                               children=DashIconify(
-                                                                                   icon="material-symbols:login",
-                                                                                   width=20,
-                                                                               ),
-                                                                               id="login_page",
-                                                                               n_clicks=0
                                                                            )
+
                                                                            ]
                                                              )
                                                          ),
@@ -92,19 +93,64 @@ app.layout = dmc.MantineProvider(forceColorScheme="dark",
 
 
 @callback(
-    Output("redirect", "href"),
-    Input("home_page", "n_clicks"),
-    Input("registration_page", "n_clicks"),
-    Input("login_page", "n_clicks")
-
+    Output("login_logout_button", "children"),
+    Input("redirect", "pathname")
 )
-def redirect_registration(home, registration, login):
-    if home:
+def update_button(pathname):
+    if not current_user.is_authenticated:
+        return dcc.Link(
+            href="/login",
+            children=dmc.ActionIcon(
+                color="green",
+                children=DashIconify(
+                    icon="material-symbols:login",
+                    width=20,
+                ),
+                id="login_page",
+                n_clicks=0
+            ))
+    else:
+        return dmc.ActionIcon(
+            color="red",
+            children=DashIconify(
+                icon="material-symbols:login",
+                width=20,
+            ),
+            id="logout_button",
+            n_clicks=0
+        )
+
+
+@callback(
+    Output("redirect", "href"),
+    Input("logout_button", "n_clicks")
+)
+def user_logout(n_clicks):
+    if n_clicks:
+        logout_user()
         return "/"
-    elif registration:
-        return "/registration"
-    elif login:
-        return "/login"
+
+
+@callback(
+    Output("user_table_button", "children"),
+    Input("redirect", "pathname")
+)
+def hide_button(pathname):
+    if current_user.is_authenticated and current_user.is_admin():
+        return [dmc.Space(h=20),
+                dcc.Link(
+                    href="/user-table",
+                    children=dmc.ActionIcon(
+                        color="green",
+                        children=DashIconify(
+                            icon="clarity:administrator-line",
+                            width=20,
+                        ),
+                        id="registration_page",
+                        n_clicks=0
+                    ))]
+    else:
+        return None
 
 
 if __name__ == "__main__":
