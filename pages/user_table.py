@@ -191,6 +191,8 @@ def confirm_redact_user_modal(n_clicks_redact, user_id, login, role, password, c
                 user.role = role
                 session.commit()
                 return True, "Изменения сохранены!", "/user-table"
+            else:
+                return False, "Пользователь с таким именем уже сужествует!", None
         else:
             return False, "Логин должен быть заполнен!", None
     return True, "", None
