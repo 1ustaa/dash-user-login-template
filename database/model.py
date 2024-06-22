@@ -24,6 +24,10 @@ class User(Base, UserMixin):
     def is_admin(self):
         return True if self.role == "Administrator" else False
 
+    def is_unique(self, login):
+        duplicate = session.query(User).filter_by(login=login).first()
+        return duplicate is None
+
 
 DATABASE_URI = "sqlite:///dash_users_login.db"
 engine = create_engine(DATABASE_URI)

@@ -79,7 +79,7 @@ def registration_user(n_clicks, login, password, check_password):
                 user.generate_password_hash(password)
                 session.add(user)
                 session.commit()
-                return None, False, "Пользователь зарегистрирован!"
+                return "/", True, None
             else:
                 return None, False, "Пароли не совпадают!"
         else:
