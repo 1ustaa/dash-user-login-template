@@ -1,10 +1,16 @@
-from sqlalchemy import Integer, String, create_engine
+from sqlalchemy import Integer, String, create_engine, ForeignKey, Table, Column
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, mapped_column
+from sqlalchemy.orm import sessionmaker, mapped_column, relationship
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
 Base = declarative_base()
+
+
+user_role_association = Table("user_role_association_table", Base.metadata,
+                              Column("user_account_id", ForeignKey("user_account.id"), primary_key=True),
+                              Column("user_role_id", ForeignKey("user_role.id"), primary_key=True)
+                              )
 
 
 class User(Base, UserMixin):
@@ -13,7 +19,7 @@ class User(Base, UserMixin):
     id = mapped_column(Integer, primary_key=True)
     login = mapped_column(String(30), nullable=False, unique=True)
     password_hash = mapped_column(String, nullable=False)
-    role = mapped_column(String, nullable=True)
+    user_role = relationship("UserRole", secondary=user_role_association, back_populates="user")
 
     def generate_password_hash(self, password):
         self.password_hash = generate_password_hash(password)
@@ -22,11 +28,19 @@ class User(Base, UserMixin):
         return check_password_hash(self.password_hash, password)
 
     def is_admin(self):
-        return True if self.role == "Administrator" else False
+        admin = session.query(UserRole).filter_by(role="Administrator").first()
+        return admin in self.user_role
 
     def is_unique(self, login):
         duplicate = session.query(User).filter_by(login=login).first()
         return duplicate is None
+
+
+class UserRole(Base):
+    __tablename__ = "user_role"
+    id = mapped_column(Integer, primary_key=True)
+    role = mapped_column(String(30), nullable=False, unique=True)
+    user = relationship("User", secondary=user_role_association, back_populates="user_role")
 
 
 DATABASE_URI = "sqlite:///dash_users_login.db"
@@ -40,4 +54,3 @@ def init_db():
 
 
 init_db()
-
