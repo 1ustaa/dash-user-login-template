@@ -1,7 +1,7 @@
 import dash
 import dash_mantine_components as dmc
 from dash import callback, Input, Output, State, dcc, html
-from database.model import User, session
+from database.model import User, UserRole, user_role_association, session, get_all_roles
 from flask_login import current_user
 from dash_iconify import DashIconify
 
@@ -15,7 +15,9 @@ def generate_table():
             [
                 dmc.TableTd(id={"type": "tb_user_id", "index": user.id}, children=user.id),
                 dmc.TableTd(id={"type": "tb_user_login", "index": user.id}, children=user.login),
-                dmc.TableTd(id={"type": "tb_user_role", "index": user.id}, children=user.role),
+                dmc.TableTd(id={"type": "tb_user_role", "index": user.id},
+                            style={'whiteSpace': 'pre-wrap', 'wordWrap': 'break-word', 'maxWidth': '300px'},
+                            children=user.get_roles_str()),
                 dmc.TableTd(dmc.ActionIcon(color="green",
                                            id={"type": "redact-user", "index": user.id},
                                            n_clicks=0,
@@ -121,7 +123,12 @@ def open_redact_user_modal(n_clicks):
             dmc.Text("Редактор пользователя"),
             dmc.TextInput(label="ID", value=user.id, disabled=True, id="red_user_id"),
             dmc.TextInput(label="Логин", value=user.login, id="red_user_login"),
-            dmc.TextInput(label="Роль", value=user.role, id="red_user_role"),
+            dmc.MultiSelect(id="red_roles_select",
+                            label="Выберите роли",
+                            value=user.get_roles(),
+                            data=get_all_roles(),
+                            w=400
+                            ),
             dmc.Space(h="20"),
             dmc.Text("Изменить пароль"),
             dmc.PasswordInput(label="Пароль", id="red_user_password"),
@@ -164,12 +171,12 @@ def delete_user(n_clicks):
     Input("save_user_changes", "n_clicks"),
     State("red_user_id", "value"),
     State("red_user_login", "value"),
-    State("red_user_role", "value"),
+    State("red_roles_select", "value"),
     State("red_user_password", "value"),
     State("red_user_check_password", "value"),
 
 )
-def confirm_redact_user_modal(n_clicks_redact, user_id, login, role, password, check_password):
+def confirm_redact_user_modal(n_clicks_redact, user_id, login, roles, password, check_password):
     if n_clicks_redact:
         user = session.get(User, int(user_id))
         assert user, f"Пользователь с айди {user_id} не найден"
@@ -177,7 +184,10 @@ def confirm_redact_user_modal(n_clicks_redact, user_id, login, role, password, c
             if password == check_password:
                 if user.is_unique(login) or login == user.login:
                     user.login = login
-                    user.role = role
+                    user.user_role.clear()
+                    for role in roles:
+                        user_role = session.query(UserRole).filter_by(role=role).first()
+                        user.add_role(user_role)
                     user.generate_password_hash(password)
                     session.commit()
                     return True, "Изменения сохранены!", "/user-table"
@@ -188,7 +198,10 @@ def confirm_redact_user_modal(n_clicks_redact, user_id, login, role, password, c
         elif login != "":
             if user.is_unique(login) or login == user.login:
                 user.login = login
-                user.role = role
+                user.user_role.clear()
+                for role in roles:
+                    user_role = session.query(UserRole).filter_by(role=role).first()
+                    user.add_role(user_role)
                 session.commit()
                 return True, "Изменения сохранены!", "/user-table"
             else:

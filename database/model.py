@@ -6,10 +6,9 @@ from flask_login import UserMixin
 
 Base = declarative_base()
 
-
 user_role_association = Table("user_role_association_table", Base.metadata,
                               Column("user_account_id", ForeignKey("user_account.id"), primary_key=True),
-                              Column("user_role_id", ForeignKey("user_role.id"), primary_key=True)
+                              Column("user_role_id", ForeignKey("user_role.id"), primary_key=True),
                               )
 
 
@@ -34,6 +33,26 @@ class User(Base, UserMixin):
     def is_unique(self, login):
         duplicate = session.query(User).filter_by(login=login).first()
         return duplicate is None
+
+    def get_roles(self):
+        role_ids = session.query(user_role_association.c.user_role_id).filter_by(user_account_id=self.id).all()
+        role_ids_list = [role_id[0] for role_id in role_ids]
+        roles = []
+        for role_id in role_ids_list:
+            roles.append(session.query(UserRole).filter_by(id=role_id).first().role)
+        return roles
+
+    def get_roles_str(self):
+        roles = self.get_roles()
+        return ", ".join(roles)
+
+    def add_role(self, role):
+        self.user_role.append(role)
+
+
+def get_all_roles():
+    roles = session.query(UserRole.role).all()
+    return [role[0] for role in roles]
 
 
 class UserRole(Base):
